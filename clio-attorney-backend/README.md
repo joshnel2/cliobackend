@@ -27,6 +27,12 @@ Backend API hosted on Vercel to authorize with Clio and compute attorney metrics
 
 A daily sync runs at 03:00 UTC hitting /api/sync. You can change the schedule in `vercel.json`.
 
-## Algorithms
+## Metrics and Export
 
-Placeholders are in `api/sync.ts`. Provide your per-attorney algorithms and we will implement them.
+- Compute placeholder metrics: `GET /api/sync?firmId=...`
+- Download combined Excel (one sheet per originating attorney):
+  - `GET /api/export?firmId=...` -> returns `metrics-FIRM.xlsx`
+- Download single-attorney Excel:
+  - `GET /api/export/attorney?firmId=...&attorneyId=...`
+
+When you provide the algorithms, we will replace the placeholders in `api/sync.ts` and feed real values into the Excel builder in `lib/excel.ts`.

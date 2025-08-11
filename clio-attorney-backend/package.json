@@ -12,6 +12,7 @@
   "dependencies": {
     "@vercel/kv": "^2.0.0",
     "cookie": "^0.6.0",
+    "exceljs": "^4.4.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
