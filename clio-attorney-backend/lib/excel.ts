@@ -143,78 +143,80 @@ export async function buildSplitWorkbook(payload: SplitPayload): Promise<Buffer>
     })
   }
 
-  // Summary by attorney (totals)
-  const attorneysWs = workbook.addWorksheet('Attorneys')
-  attorneysWs.columns = [
-    { header: 'Attorney', key: 'name', width: 30 },
-    { header: 'Originator Amount', key: 'originator', width: 20 },
-    { header: 'Working Amount', key: 'working', width: 20 },
-    { header: 'Total Amount', key: 'total', width: 20 },
-    { header: 'Matters Count', key: 'matters', width: 16 },
-  ]
-
-  const perAttorney = new Map<string | number, { name: string; originator: number; working: number; matters: Set<string | number> }>()
+  // Per-originator sheets: list that originator's matters and include working-attorney totals
+  // Group matters by originator id
+  const originatorIdToName = new Map<string | number, string>()
+  const originatorToMatters = new Map<string | number, MatterSplitRow[]>()
   for (const m of payload.matters) {
-    for (const s of m.shares) {
-      const current = perAttorney.get(s.id) || { name: s.name, originator: 0, working: 0, matters: new Set() }
-      if (s.role === 'originator') current.originator += s.amount || 0
-      else current.working += s.amount || 0
-      current.matters.add(m.matterId)
-      perAttorney.set(s.id, current)
-    }
+    const origin = m.shares.find(s => s.role === 'originator')
+    if (!origin) continue
+    originatorIdToName.set(origin.id, origin.name)
+    const list = originatorToMatters.get(origin.id) || []
+    list.push(m)
+    originatorToMatters.set(origin.id, list)
   }
 
-  let grandTotal = 0
-  for (const [, v] of perAttorney) {
-    const total = (v.originator || 0) + (v.working || 0)
-    grandTotal += total
-    attorneysWs.addRow({
-      name: v.name,
-      originator: v.originator || 0,
-      working: v.working || 0,
-      total,
-      matters: v.matters.size,
-    })
-  }
-  attorneysWs.addRow({})
-  attorneysWs.addRow({ name: 'Grand Total', total: grandTotal })
+  for (const [originatorId, originatorName] of originatorIdToName) {
+    const ws = workbook.addWorksheet(sanitizeSheetName(originatorName || String(originatorId)))
 
-  // Per-attorney sheets: list matters and their amounts
-  // Gather unique attorneys across all matters
-  const attorneyIdToName = new Map<string | number, string>()
-  for (const m of payload.matters) {
-    for (const s of m.shares) {
-      attorneyIdToName.set(s.id, s.name)
-    }
-  }
-
-  for (const [attorneyId, attorneyName] of attorneyIdToName) {
-    const ws = workbook.addWorksheet(sanitizeSheetName(attorneyName || String(attorneyId)))
+    // Matter-level rows
     ws.columns = [
       { header: 'Matter', key: 'matter', width: 40 },
-      { header: 'Role', key: 'role', width: 14 },
-      { header: 'Amount', key: 'amount', width: 16 },
-      { header: 'Matter Total', key: 'total', width: 16 },
-      { header: 'Originator', key: 'originator', width: 28 },
+      { header: 'Originator Amount', key: 'originatorAmount', width: 20 },
+      { header: 'Other Attorneys Total', key: 'othersTotal', width: 20 },
+      { header: 'Other Attorneys (breakdown)', key: 'othersBreakdown', width: 50 },
+      { header: 'Matter Total', key: 'total', width: 18 },
     ]
 
-    let subtotal = 0
-    for (const m of payload.matters) {
-      const share = m.shares.find(s => String(s.id) === String(attorneyId))
-      if (!share) continue
+    let originatorSubtotal = 0
+    let othersSubtotal = 0
+
+    const matters = originatorToMatters.get(originatorId) || []
+    for (const m of matters) {
       const origin = m.shares.find(s => s.role === 'originator')
-      subtotal += share.amount || 0
+      const others = m.shares.filter(s => s.role !== 'originator')
+      const originAmount = origin ? origin.amount || 0 : 0
+      const othersTotal = others.reduce((acc, s) => acc + (s.amount || 0), 0)
+      const othersBreakdown = others
+        .filter(s => (s.amount || 0) !== 0)
+        .map(s => `${s.name}: ${s.amount}`)
+        .join('; ')
+
+      originatorSubtotal += originAmount
+      othersSubtotal += othersTotal
+
       ws.addRow({
         matter: m.matterName,
-        role: share.role,
-        amount: share.amount || 0,
+        originatorAmount: originAmount,
+        othersTotal,
+        othersBreakdown,
         total: m.totalCollected,
-        originator: origin ? origin.name : '',
       })
     }
 
     ws.addRow({})
-    ws.addRow({ matter: 'Subtotal', amount: subtotal })
+    ws.addRow({ matter: 'Originator Total', originatorAmount: originatorSubtotal })
+    ws.addRow({ matter: 'Other Attorneys Total', othersTotal: othersSubtotal })
+
+    // Working-attorney totals across this originator's matters
+    ws.addRow({})
+    ws.addRow({ matter: 'Working Attorneys Totals' })
+
+    const workingTotals = new Map<string, number>()
+    for (const m of matters) {
+      for (const s of m.shares) {
+        if (s.role !== 'originator' && (s.amount || 0) !== 0) {
+          const key = s.name || String(s.id)
+          workingTotals.set(key, (workingTotals.get(key) || 0) + (s.amount || 0))
+        }
+      }
+    }
+
+    // Add header row for working totals
+    ws.addRow({ matter: 'Attorney', originatorAmount: 'Amount' })
+    for (const [attorneyName, amt] of workingTotals) {
+      ws.addRow({ matter: attorneyName, originatorAmount: amt })
+    }
   }
 
   const buffer = await workbook.xlsx.writeBuffer()
