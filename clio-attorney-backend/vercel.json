@@ -1,10 +1,13 @@
 {
-  "crons": [
-    { "path": "/api/sync", "schedule": "0 3 * * *" }
-  ],
   "functions": {
-    "api/**/*": {
-      "runtime": "nodejs22.x"
+    "api/**/*.{js,ts}": {
+      "runtime": "@vercel/node@3.2.26"
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/sync",
+      "schedule": "0 3 * * *"
+    }
+  ]
 }
