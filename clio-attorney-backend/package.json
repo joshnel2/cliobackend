@@ -1,0 +1,25 @@
+{
+  "name": "clio-attorney-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev -d --confirm",
+    "start": "vercel dev -d --confirm",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'no lint configured'"
+  },
+  "dependencies": {
+    "@vercel/kv": "^2.0.0",
+    "cookie": "^0.6.0",
+    "exceljs": "^4.4.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/cookie": "^0.6.0",
+    "@types/node": "^22.5.0",
+    "@vercel/node": "^3.2.26",
+    "typescript": "^5.5.4",
+    "vercel": "^37.0.1"
+  }
+}
