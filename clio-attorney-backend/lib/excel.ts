@@ -143,6 +143,42 @@ export async function buildSplitWorkbook(payload: SplitPayload): Promise<Buffer>
     })
   }
 
+  // Summary by attorney (totals)
+  const attorneysWs = workbook.addWorksheet('Attorneys')
+  attorneysWs.columns = [
+    { header: 'Attorney', key: 'name', width: 30 },
+    { header: 'Originator Amount', key: 'originator', width: 20 },
+    { header: 'Working Amount', key: 'working', width: 20 },
+    { header: 'Total Amount', key: 'total', width: 20 },
+    { header: 'Matters Count', key: 'matters', width: 16 },
+  ]
+
+  const perAttorney = new Map<string | number, { name: string; originator: number; working: number; matters: Set<string | number> }>()
+  for (const m of payload.matters) {
+    for (const s of m.shares) {
+      const current = perAttorney.get(s.id) || { name: s.name, originator: 0, working: 0, matters: new Set() }
+      if (s.role === 'originator') current.originator += s.amount || 0
+      else current.working += s.amount || 0
+      current.matters.add(m.matterId)
+      perAttorney.set(s.id, current)
+    }
+  }
+
+  let grandTotal = 0
+  for (const [, v] of perAttorney) {
+    const total = (v.originator || 0) + (v.working || 0)
+    grandTotal += total
+    attorneysWs.addRow({
+      name: v.name,
+      originator: v.originator || 0,
+      working: v.working || 0,
+      total,
+      matters: v.matters.size,
+    })
+  }
+  attorneysWs.addRow({})
+  attorneysWs.addRow({ name: 'Grand Total', total: grandTotal })
+
   // Per-attorney sheets: list matters and their amounts
   // Gather unique attorneys across all matters
   const attorneyIdToName = new Map<string | number, string>()
