@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { getTokens } from '../lib/clio'
+import { getTokens } from '../lib/clio.js'
 import { kv } from '@vercel/kv'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

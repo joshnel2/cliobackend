@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { serialize } from 'cookie'
-import { generateRandomString, sha256Base64Url } from '../../lib/crypto'
+import { generateRandomString, sha256Base64Url } from '../../lib/crypto.js'
 
 const CLIO_BASE_URL = process.env.CLIO_BASE_URL || 'https://app.clio.com'
 const CLIENT_ID = process.env.CLIO_CLIENT_ID || ''

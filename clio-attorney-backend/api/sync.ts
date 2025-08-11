@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { listUsers } from '../lib/clio'
+import { listUsers } from '../lib/clio.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {

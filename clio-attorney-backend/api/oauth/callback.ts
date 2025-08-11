@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { parse } from 'cookie'
-import { saveTokens, type ClioTokens } from '../../lib/clio'
+import { saveTokens, type ClioTokens } from '../../lib/clio.js'
 
 const CLIO_BASE_URL = process.env.CLIO_BASE_URL || 'https://app.clio.com'
 const CLIENT_ID = process.env.CLIO_CLIENT_ID || ''

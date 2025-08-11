@@ -1,5 +1,5 @@
 import type { IncomingMessage } from 'http'
-import { getJson, setJson } from './kv'
+import { getJson, setJson } from './kv.js'
 
 const CLIO_BASE_URL = process.env.CLIO_BASE_URL || 'https://app.clio.com'
 const CLIENT_ID = process.env.CLIO_CLIENT_ID || ''

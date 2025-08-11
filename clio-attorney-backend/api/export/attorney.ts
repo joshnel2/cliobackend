@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { listUsers } from '../../lib/clio'
-import { buildSingleAttorneyWorkbook } from '../../lib/excel'
+import { listUsers } from '../../lib/clio.js'
+import { buildSingleAttorneyWorkbook } from '../../lib/excel.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {

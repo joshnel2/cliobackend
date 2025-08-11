@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { listUsers } from '../lib/clio'
-import { buildWorkbook, type MetricsPayload } from '../lib/excel'
+import { listUsers } from '../lib/clio.js'
+import { buildWorkbook, type MetricsPayload } from '../lib/excel.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
