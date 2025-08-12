@@ -105,7 +105,7 @@ export async function clioGet<T>(firmId: string, path: string, search?: Record<s
 }
 
 export async function listUsers(firmId: string): Promise<any[]> {
-  type UsersResponse = { users?: any[]; data?: any[] }
+  type UsersResponse = { users?: any[]; data?: any[]; meta?: { records?: number } }
 
   // Cache users briefly to avoid rate limits
   const cacheKey = `clio:users:${firmId}`
@@ -145,10 +145,22 @@ export async function listUsers(firmId: string): Promise<any[]> {
     }
   }
 
+  // Normalize minimal fields (v4 may return only id and name)
+  const normalized = users.map(u => {
+    const name = (u.name || `${u.first_name ?? ''} ${u.last_name ?? ''}` || '').trim()
+    return {
+      id: u.id,
+      name,
+      first_name: u.first_name || '',
+      last_name: u.last_name || '',
+      email: u.email || '',
+    }
+  })
+
   // Store in KV for 5 minutes
-  if (users.length > 0) {
-    await setJson(cacheKey, users, 300)
+  if (normalized.length > 0) {
+    await setJson(cacheKey, normalized, 300)
   }
 
-  return users
+  return normalized
 }

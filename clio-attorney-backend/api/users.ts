@@ -8,13 +8,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const debug = req.query.debug === '1'
 
     const users = await listUsers(firmId)
-    const results = users.map((u: any) => ({
-      id: u.id,
-      first_name: u.first_name || '',
-      last_name: u.last_name || '',
-      name: `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim(),
-      email: u.email || '',
-    }))
+    const results = users.map((u: any) => {
+      const first = u.first_name || ''
+      const last = u.last_name || ''
+      const composed = `${first} ${last}`.trim()
+      const displayName = (u.name && String(u.name).trim()) || composed
+      return {
+        id: u.id,
+        first_name: first,
+        last_name: last,
+        name: composed,
+        displayName,
+        email: u.email || '',
+      }
+    })
 
     if (!debug) {
       return res.status(200).json({ ok: true, users: results })
