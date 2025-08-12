@@ -81,7 +81,12 @@ export async function clioGet<T>(firmId: string, path: string, search?: Record<s
 
   while (true) {
     attempt += 1
-    const resp = await fetch(makeUrl(), { headers: { Authorization: `Bearer ${tokens.access_token}` } })
+    const resp = await fetch(makeUrl(), {
+      headers: {
+        Authorization: `Bearer ${tokens.access_token}`,
+        Accept: 'application/vnd.api+json, application/json',
+      },
+    })
 
     if (resp.status === 401 && attempt <= maxAttempts) {
       tokens = await refreshTokens(tokens)
