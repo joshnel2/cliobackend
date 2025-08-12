@@ -35,6 +35,11 @@ export interface MatterSplitRow {
   matterName: string
   totalCollected: number
   shares: AttorneyShareRow[]
+  // Optional display fields used for originator sheets
+  selfOrigSelfBilled?: number
+  selfOrigOthersBilled?: number
+  nonOrigSelfBilled?: number
+  originatorComputedAmount?: number
 }
 
 export interface SplitPayload {
@@ -162,41 +167,64 @@ export async function buildSplitWorkbook(payload: SplitPayload): Promise<Buffer>
     // Matter-level rows
     ws.columns = [
       { header: 'Matter', key: 'matter', width: 40 },
+      { header: 'Collected', key: 'collected', width: 16 },
+      { header: 'Self-Orig + Self-Billed (50%)', key: 'selfOrigSelfBilled', width: 24 },
+      { header: 'Self-Orig + Others-Billed (15%)', key: 'selfOrigOthersBilled', width: 26 },
+      { header: 'Non-Orig + Self-Billed (30%)', key: 'nonOrigSelfBilled', width: 24 },
       { header: 'Originator Amount', key: 'originatorAmount', width: 20 },
       { header: 'Other Attorneys Total', key: 'othersTotal', width: 20 },
       { header: 'Other Attorneys (breakdown)', key: 'othersBreakdown', width: 50 },
-      { header: 'Matter Total', key: 'total', width: 18 },
     ]
 
     let originatorSubtotal = 0
     let othersSubtotal = 0
+    let colSelfOrigSelfBilled = 0
+    let colSelfOrigOthersBilled = 0
+    let colNonOrigSelfBilled = 0
 
     const matters = originatorToMatters.get(originatorId) || []
     for (const m of matters) {
       const origin = m.shares.find(s => s.role === 'originator')
       const others = m.shares.filter(s => s.role !== 'originator')
-      const originAmount = origin ? origin.amount || 0 : 0
+      const originAmount = (typeof m.originatorComputedAmount === 'number') ? (m.originatorComputedAmount || 0) : (origin ? origin.amount || 0 : 0)
       const othersTotal = others.reduce((acc, s) => acc + (s.amount || 0), 0)
       const othersBreakdown = others
         .filter(s => (s.amount || 0) !== 0)
         .map(s => `${s.name}: ${s.amount}`)
         .join('; ')
 
+      const vSelfOrigSelfBilled = m.selfOrigSelfBilled || 0
+      const vSelfOrigOthersBilled = m.selfOrigOthersBilled || 0
+      const vNonOrigSelfBilled = m.nonOrigSelfBilled || 0
+
       originatorSubtotal += originAmount
       othersSubtotal += othersTotal
+      colSelfOrigSelfBilled += vSelfOrigSelfBilled
+      colSelfOrigOthersBilled += vSelfOrigOthersBilled
+      colNonOrigSelfBilled += vNonOrigSelfBilled
 
       ws.addRow({
         matter: m.matterName,
+        collected: m.totalCollected,
+        selfOrigSelfBilled: vSelfOrigSelfBilled,
+        selfOrigOthersBilled: vSelfOrigOthersBilled,
+        nonOrigSelfBilled: vNonOrigSelfBilled,
         originatorAmount: originAmount,
         othersTotal,
         othersBreakdown,
-        total: m.totalCollected,
       })
     }
 
     ws.addRow({})
-    ws.addRow({ matter: 'Originator Total', originatorAmount: originatorSubtotal })
-    ws.addRow({ matter: 'Other Attorneys Total', othersTotal: othersSubtotal })
+    ws.addRow({
+      matter: 'Totals',
+      collected: '',
+      selfOrigSelfBilled: colSelfOrigSelfBilled,
+      selfOrigOthersBilled: colSelfOrigOthersBilled,
+      nonOrigSelfBilled: colNonOrigSelfBilled,
+      originatorAmount: originatorSubtotal,
+      othersTotal: othersSubtotal,
+    })
 
     // Working-attorney totals across this originator's matters
     ws.addRow({})
@@ -212,7 +240,6 @@ export async function buildSplitWorkbook(payload: SplitPayload): Promise<Buffer>
       }
     }
 
-    // Add header row for working totals
     ws.addRow({ matter: 'Attorney', originatorAmount: 'Amount' })
     for (const [attorneyName, amt] of workingTotals) {
       ws.addRow({ matter: attorneyName, originatorAmount: amt })

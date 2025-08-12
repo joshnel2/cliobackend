@@ -52,10 +52,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } else {
       if (!originatorName) return res.status(400).json({ error: 'Provide ?originator=First%20Last or ?originatorId=ID' })
       const target = normalize(originatorName)
-      originator = users.find(u => normalize(`${u.first_name ?? ''} ${u.last_name ?? ''}`) === target)
+      originator = users.find(u => normalize(`${u.first_name ?? ''} ${u.last_name ?? ''}`) === target || normalize(u.name || '') === target)
       if (!originator) {
-        // try partial match
-        originator = users.find(u => normalize(`${u.first_name ?? ''} ${u.last_name ?? ''}`).includes(target))
+        originator = users.find(u => normalize(`${u.first_name ?? ''} ${u.last_name ?? ''}`).includes(target) || normalize(u.name || '').includes(target))
       }
       if (!originator) return res.status(404).json({ error: `Originator not found: ${originatorName}` })
     }
@@ -70,45 +69,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       matterName: 'Example Matter 1',
       totalCollected: 12000,
       shares: [
-        { id: originator.id, name: `${originator.first_name} ${originator.last_name}`.trim(), role: 'originator', amount: 0 },
-        { id: other.id, name: `${other.first_name} ${other.last_name}`.trim(), role: 'working', amount: 0 },
+        { id: originator.id, name: `${originator.first_name || ''} ${originator.last_name || ''}`.trim() || originator.name, role: 'originator', amount: 0 },
+        { id: other.id, name: `${other.first_name || ''} ${other.last_name || ''}`.trim() || other.name, role: 'working', amount: 0 },
       ],
     }
     const matter1SelfPortion = 7000
     const matter1OthersPortion = 5000
-    const matter1OriginatorShare = rules.selfOriginatedWorkingPct * matter1SelfPortion + rules.selfOriginatedOthersWorkingPct * matter1OthersPortion
-    const matter1OtherShare = matter1OthersPortion - (rules.selfOriginatedOthersWorkingPct * matter1OthersPortion)
-    matter1.shares[0].amount = Math.round(matter1OriginatorShare * 100) / 100
-    matter1.shares[1].amount = Math.round(matter1OtherShare * 100) / 100
+    matter1.selfOrigSelfBilled = Math.round(rules.selfOriginatedWorkingPct * matter1SelfPortion * 100) / 100
+    matter1.selfOrigOthersBilled = Math.round(rules.selfOriginatedOthersWorkingPct * matter1OthersPortion * 100) / 100
+    matter1.originatorComputedAmount = matter1.selfOrigSelfBilled + matter1.selfOrigOthersBilled
+    matter1.shares[0].amount = matter1.originatorComputedAmount
+    matter1.shares[1].amount = Math.round((matter1OthersPortion - (rules.selfOriginatedOthersWorkingPct * matter1OthersPortion)) * 100) / 100
 
     const matter2: MatterSplitRow = {
       matterId: 'M-1002',
       matterName: 'Example Matter 2',
       totalCollected: 8000,
       shares: [
-        { id: originator.id, name: `${originator.first_name} ${originator.last_name}`.trim(), role: 'originator', amount: 0 },
-        { id: other.id, name: `${other.first_name} ${other.last_name}`.trim(), role: 'working', amount: 0 },
+        { id: originator.id, name: `${originator.first_name || ''} ${originator.last_name || ''}`.trim() || originator.name, role: 'originator', amount: 0 },
+        { id: other.id, name: `${other.first_name || ''} ${other.last_name || ''}`.trim() || other.name, role: 'working', amount: 0 },
       ],
     }
     const matter2SelfPortion = 2000
     const matter2OthersPortion = 6000
-    const matter2OriginatorShare = rules.selfOriginatedWorkingPct * matter2SelfPortion + rules.selfOriginatedOthersWorkingPct * matter2OthersPortion
-    const matter2OtherShare = matter2OthersPortion - (rules.selfOriginatedOthersWorkingPct * matter2OthersPortion)
-    matter2.shares[0].amount = Math.round(matter2OriginatorShare * 100) / 100
-    matter2.shares[1].amount = Math.round(matter2OtherShare * 100) / 100
+    matter2.selfOrigSelfBilled = Math.round(rules.selfOriginatedWorkingPct * matter2SelfPortion * 100) / 100
+    matter2.selfOrigOthersBilled = Math.round(rules.selfOriginatedOthersWorkingPct * matter2OthersPortion * 100) / 100
+    matter2.originatorComputedAmount = matter2.selfOrigSelfBilled + matter2.selfOrigOthersBilled
+    matter2.shares[0].amount = matter2.originatorComputedAmount
+    matter2.shares[1].amount = Math.round((matter2OthersPortion - (rules.selfOriginatedOthersWorkingPct * matter2OthersPortion)) * 100) / 100
 
     const matter3: MatterSplitRow = {
       matterId: 'M-1003',
       matterName: 'Non-Originated Worked Matter',
       totalCollected: 9000,
       shares: [
-        { id: other.id, name: `${other.first_name} ${other.last_name}`.trim(), role: 'originator', amount: 0 },
-        { id: originator.id, name: `${originator.first_name} ${originator.last_name}`.trim(), role: 'working', amount: 0 },
+        { id: other.id, name: `${other.first_name || ''} ${other.last_name || ''}`.trim() || other.name, role: 'originator', amount: 0 },
+        { id: originator.id, name: `${originator.first_name || ''} ${originator.last_name || ''}`.trim() || originator.name, role: 'working', amount: 0 },
       ],
     }
     const matter3SelfWorkedPortion = 3000
-    const matter3OriginatorNonOrigShare = rules.nonOriginatedWorkingPct * matter3SelfWorkedPortion
-    matter3.shares[1].amount = Math.round(matter3OriginatorNonOrigShare * 100) / 100
+    matter3.nonOrigSelfBilled = Math.round(rules.nonOriginatedWorkingPct * matter3SelfWorkedPortion * 100) / 100
+    matter3.originatorComputedAmount = matter3.nonOrigSelfBilled
+    matter3.shares[1].amount = matter3.originatorComputedAmount
     matter3.shares[0].amount = matter3.totalCollected - matter3.shares[1].amount
 
     const payload: SplitPayload = {
@@ -119,7 +121,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const buf = await buildSplitWorkbook(payload)
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    res.setHeader('Content-Disposition', `attachment; filename="originator-${encodeURIComponent(originatorName || String(originator.id))}-${(month || 'current').replace(/\s+/g,'')}.xlsx"`)
+    res.setHeader('Content-Disposition', `attachment; filename=originator-${encodeURIComponent(originatorName || String(originator.id))}-${(month || 'current').replace(/\s+/g,'')}.xlsx`)
     res.status(200).send(buf)
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Export originator failed' })
