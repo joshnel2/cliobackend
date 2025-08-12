@@ -85,15 +85,39 @@ export async function clioGet<T>(firmId: string, path: string, search?: Record<s
 }
 
 export async function listUsers(firmId: string): Promise<any[]> {
-  // Basic pagination loop; refine as needed
+  type UsersResponse = { users?: any[]; data?: any[] }
   const users: any[] = []
-  let page = 1
-  while (true) {
-    const res = await clioGet<{ users: any[] }>(firmId, '/users', { page, per_page: 200 })
-    if (!res.users || res.users.length === 0) break
-    users.push(...res.users)
-    if (res.users.length < 200) break
-    page += 1
+
+  async function fetchPage(path: string, page: number): Promise<any[]> {
+    const res = await clioGet<UsersResponse>(firmId, path, { page, per_page: 200 })
+    const pageUsers = (res.users ?? res.data ?? []) as any[]
+    return pageUsers
   }
+
+  // Try /users first, then fallback to /users.json if needed
+  let page = 1
+  try {
+    // First attempt
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const pageUsers = await fetchPage('/users', page)
+      if (pageUsers.length === 0) break
+      users.push(...pageUsers)
+      if (pageUsers.length < 200) break
+      page += 1
+    }
+  } catch (e) {
+    // Fallback to .json endpoint
+    page = 1
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const pageUsers = await fetchPage('/users.json', page)
+      if (pageUsers.length === 0) break
+      users.push(...pageUsers)
+      if (pageUsers.length < 200) break
+      page += 1
+    }
+  }
+
   return users
 }
