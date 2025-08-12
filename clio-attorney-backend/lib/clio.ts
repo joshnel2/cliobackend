@@ -115,6 +115,7 @@ export async function listUsers(firmId: string): Promise<any[]> {
   }
 
   const users: any[] = []
+  const MAX_PAGES = Number(process.env.CLIO_MAX_USER_PAGES || '1')
 
   async function fetchPage(path: string, page: number): Promise<any[]> {
     const res = await clioGet<UsersResponse>(firmId, path, { page, per_page: 200 })
@@ -125,23 +126,18 @@ export async function listUsers(firmId: string): Promise<any[]> {
   // Try /users first, then fallback to /users.json if needed
   let page = 1
   try {
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
+    for (; page <= MAX_PAGES; page++) {
       const pageUsers = await fetchPage('/users', page)
       if (pageUsers.length === 0) break
       users.push(...pageUsers)
       if (pageUsers.length < 200) break
-      page += 1
     }
   } catch (e) {
-    page = 1
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
+    for (page = 1; page <= MAX_PAGES; page++) {
       const pageUsers = await fetchPage('/users.json', page)
       if (pageUsers.length === 0) break
       users.push(...pageUsers)
       if (pageUsers.length < 200) break
-      page += 1
     }
   }
 
