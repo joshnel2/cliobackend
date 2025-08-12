@@ -15,6 +15,10 @@ export interface ClioTokens {
 
 const TOKEN_KEY = (firmId: string) => `clio:toks:${firmId}`
 
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 export async function getTokens(firmId: string): Promise<ClioTokens | null> {
   return await getJson<ClioTokens>(TOKEN_KEY(firmId))
 }
@@ -63,29 +67,53 @@ export async function ensureAccessToken(firmId: string): Promise<ClioTokens> {
 }
 
 export async function clioGet<T>(firmId: string, path: string, search?: Record<string, string | number | boolean>): Promise<T> {
-  const tokens = await ensureAccessToken(firmId)
-  const url = new URL(`${CLIO_BASE_URL}/api/v4${path}`)
-  if (search) {
-    Object.entries(search).forEach(([k, v]) => url.searchParams.set(k, String(v)))
+  const makeUrl = () => {
+    const url = new URL(`${CLIO_BASE_URL}/api/v4${path}`)
+    if (search) {
+      Object.entries(search).forEach(([k, v]) => url.searchParams.set(k, String(v)))
+    }
+    return url.toString()
   }
-  const resp = await fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${tokens.access_token}` },
-  })
-  if (resp.status === 401) {
-    const refreshed = await refreshTokens(tokens)
-    await saveTokens(firmId, refreshed)
-    const retry = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${refreshed.access_token}` },
-    })
-    if (!retry.ok) throw new Error(`Clio API error: ${retry.status}`)
-    return await retry.json() as T
+
+  let tokens = await ensureAccessToken(firmId)
+  let attempt = 0
+  const maxAttempts = 3
+
+  while (true) {
+    attempt += 1
+    const resp = await fetch(makeUrl(), { headers: { Authorization: `Bearer ${tokens.access_token}` } })
+
+    if (resp.status === 401 && attempt <= maxAttempts) {
+      tokens = await refreshTokens(tokens)
+      await saveTokens(firmId, tokens)
+      continue
+    }
+
+    if (resp.status === 429 && attempt < maxAttempts) {
+      const retryAfterHeader = resp.headers.get('retry-after')
+      const retryAfterMs = retryAfterHeader ? Number(retryAfterHeader) * 1000 : 1000 * attempt
+      await sleep(Math.min(retryAfterMs || 1000, 5000))
+      continue
+    }
+
+    if (!resp.ok) {
+      throw new Error(`Clio API error: ${resp.status}`)
+    }
+
+    return await resp.json() as T
   }
-  if (!resp.ok) throw new Error(`Clio API error: ${resp.status}`)
-  return await resp.json() as T
 }
 
 export async function listUsers(firmId: string): Promise<any[]> {
   type UsersResponse = { users?: any[]; data?: any[] }
+
+  // Cache users briefly to avoid rate limits
+  const cacheKey = `clio:users:${firmId}`
+  const cached = await getJson<any[]>(cacheKey)
+  if (cached && Array.isArray(cached) && cached.length > 0) {
+    return cached
+  }
+
   const users: any[] = []
 
   async function fetchPage(path: string, page: number): Promise<any[]> {
@@ -97,7 +125,6 @@ export async function listUsers(firmId: string): Promise<any[]> {
   // Try /users first, then fallback to /users.json if needed
   let page = 1
   try {
-    // First attempt
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const pageUsers = await fetchPage('/users', page)
@@ -107,7 +134,6 @@ export async function listUsers(firmId: string): Promise<any[]> {
       page += 1
     }
   } catch (e) {
-    // Fallback to .json endpoint
     page = 1
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -117,6 +143,11 @@ export async function listUsers(firmId: string): Promise<any[]> {
       if (pageUsers.length < 200) break
       page += 1
     }
+  }
+
+  // Store in KV for 5 minutes
+  if (users.length > 0) {
+    await setJson(cacheKey, users, 300)
   }
 
   return users
