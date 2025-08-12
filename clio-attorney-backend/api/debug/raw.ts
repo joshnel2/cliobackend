@@ -11,8 +11,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const tokens = await ensureAccessToken(firmId)
 
     const url = new URL(`${base}/api/v4/${path}`)
-    url.searchParams.set('page', String(1))
-    url.searchParams.set('per_page', String(25))
+    // Forward additional query params
+    for (const [k, v] of Object.entries(req.query)) {
+      if (k === 'firmId' || k === 'path') continue
+      url.searchParams.set(k, String(v))
+    }
+    if (!url.searchParams.has('page')) url.searchParams.set('page', String(1))
+    if (!url.searchParams.has('per_page')) url.searchParams.set('per_page', String(25))
 
     const resp = await fetch(url.toString(), {
       headers: {
@@ -33,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       hasJson: Boolean(json),
       keys: json ? Object.keys(json) : null,
       sampleItemKeys: json && Array.isArray(json.data) && json.data.length ? Object.keys(json.data[0]) : null,
-      sample: text.slice(0, 1200),
+      sample: text.slice(0, 2000),
     }
 
     res.status(200).json({ ok: true, tokenScope: tokens.scope || null, result })
