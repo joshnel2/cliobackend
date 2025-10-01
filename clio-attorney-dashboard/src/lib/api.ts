@@ -107,6 +107,62 @@ export const apiClient = {
   async getMetrics(firmId: string) {
     const response = await api.get(`/metrics?firmId=${firmId}`)
     return response.data
+  },
+
+  // Analytics & Algorithm Management
+  async getAlgorithms(firmId: string) {
+    const response = await api.get(`/algorithms?firmId=${firmId}`)
+    return response.data.algorithms || []
+  },
+
+  async saveAlgorithm(firmId: string, algorithm: any) {
+    const response = await api.post(`/algorithms?firmId=${firmId}`, algorithm)
+    return response.data
+  },
+
+  async deleteAlgorithm(firmId: string, algorithmId: string) {
+    const response = await api.delete(`/algorithms/${algorithmId}?firmId=${firmId}`)
+    return response.data
+  },
+
+  async getDataViews(firmId: string) {
+    const response = await api.get(`/data-views?firmId=${firmId}`)
+    return response.data.views || []
+  },
+
+  async getBills(firmId: string) {
+    const response = await api.get(`/bills?firmId=${firmId}`)
+    return response.data.bills || []
+  },
+
+  async getTimeEntries(firmId: string) {
+    const response = await api.get(`/time-entries?firmId=${firmId}`)
+    return response.data.time_entries || []
+  },
+
+  async getPayments(firmId: string) {
+    const response = await api.get(`/payments?firmId=${firmId}`)
+    return response.data.payments || []
+  },
+
+  async getFormulas(firmId: string) {
+    const response = await api.get(`/formulas?firmId=${firmId}`)
+    return response.data.formulas || []
+  },
+
+  async saveFormula(firmId: string, formula: any) {
+    const response = await api.post(`/formulas?firmId=${firmId}`, formula)
+    return response.data
+  },
+
+  async getReports(firmId: string) {
+    const response = await api.get(`/reports?firmId=${firmId}`)
+    return response.data.reports || []
+  },
+
+  async saveReport(firmId: string, report: any) {
+    const response = await api.post(`/reports?firmId=${firmId}`, report)
+    return response.data
   }
 }
 

@@ -3,6 +3,7 @@ import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import AttorneyDetail from './pages/AttorneyDetail'
 import Settings from './pages/Settings'
+import Analytics from './pages/Analytics'
 import Login from './pages/Login'
 import { useAuth } from './hooks/useAuth'
 
@@ -26,6 +27,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/attorney/:id" element={<AttorneyDetail />} />
+        <Route path="/analytics" element={<Analytics />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
     </Layout>

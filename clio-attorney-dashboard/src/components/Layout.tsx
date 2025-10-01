@@ -6,7 +6,8 @@ import {
   Settings, 
   LogOut, 
   DollarSign,
-  RefreshCw
+  RefreshCw,
+  Database
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useQuery } from '@tanstack/react-query'
@@ -28,6 +29,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: BarChart3 },
+    { name: 'Analytics Studio', href: '/analytics', icon: Database },
     { name: 'Attorneys', href: '/attorneys', icon: Users },
     { name: 'Settings', href: '/settings', icon: Settings },
   ]
