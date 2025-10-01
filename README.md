@@ -104,44 +104,17 @@ You need **TWO** databases for this system:
    npm run db:migrate
    ```
 
-5. **Deploy to Vercel**:
+6. **Deploy to Vercel**:
    ```bash
+   # Option 1: Use the deployment script
+   ./scripts/deploy.sh
+   
+   # Option 2: Manual deployment
+   npm run build
    npx vercel --prod
    ```
 
-### Frontend Setup
-
-1. **Navigate to the frontend**:
-   ```bash
-   cd clio-attorney-dashboard
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-
-3. **Update API endpoint** in `vite.config.ts`:
-   ```typescript
-   server: {
-     proxy: {
-       '/api': {
-         target: 'https://your-backend.vercel.app', // Your deployed backend URL
-         changeOrigin: true,
-       }
-     }
-   }
-   ```
-
-4. **Start development server**:
-   ```bash
-   npm run dev
-   ```
-
-5. **Build for production**:
-   ```bash
-   npm run build
-   ```
+**That's it!** The dashboard is now a full-stack application that includes both the API and the React frontend in a single Vercel deployment.
 
 ## 🔧 Configuration
 
