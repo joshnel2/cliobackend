@@ -34,8 +34,21 @@ You'll need to set up the following to use this system:
    - `read:users` - To access attorney information
    - `read:payments` - To access payment data
 
-#### 2. Vercel KV Database
+#### 2. Database Setup
 
+You need **TWO** databases for this system:
+
+**A. PostgreSQL Database (Primary Data Storage)**
+1. **Create a PostgreSQL Database**:
+   - **Option 1**: Use [Vercel Postgres](https://vercel.com/docs/storage/vercel-postgres)
+   - **Option 2**: Use [Supabase](https://supabase.com/) (free tier available)
+   - **Option 3**: Use [Railway](https://railway.app/) or [PlanetScale](https://planetscale.com/)
+
+2. **Required Environment Variable**:
+   - `POSTGRES_URL`: Your PostgreSQL connection string
+   - Example: `postgresql://user:password@host:5432/database`
+
+**B. Vercel KV Database (Caching & Configuration)**
 1. **Create a Vercel KV Database**:
    - Go to [Vercel Dashboard](https://vercel.com/dashboard)
    - Create a new KV database
@@ -74,13 +87,21 @@ You'll need to set up the following to use this system:
    CLIO_BASE_URL=https://app.clio.com
    DEFAULT_SCOPE=read:bills read:matters read:time_entries read:users read:payments
 
-   # Vercel KV Configuration
+   # PostgreSQL Database (Primary Storage)
+   POSTGRES_URL=postgresql://user:password@host:5432/database
+
+   # Vercel KV Configuration (Caching)
    KV_URL=your_kv_url
    KV_REST_API_URL=your_kv_rest_api_url
    KV_REST_API_TOKEN=your_kv_rest_api_token
 
    # Optional Configuration
    CLIO_MAX_USER_PAGES=5
+   ```
+
+5. **Set up the database**:
+   ```bash
+   npm run db:migrate
    ```
 
 5. **Deploy to Vercel**:
