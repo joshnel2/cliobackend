@@ -165,3 +165,77 @@ export async function listUsers(firmId: string): Promise<any[]> {
 
   return normalized
 }
+
+export async function listBills(firmId: string, options: { 
+  page?: number, 
+  per_page?: number,
+  created_since?: string,
+  updated_since?: string 
+} = {}): Promise<any[]> {
+  const { page = 1, per_page = 200, created_since, updated_since } = options
+  
+  const params: Record<string, string | number> = { page, per_page }
+  if (created_since) params.created_since = created_since
+  if (updated_since) params.updated_since = updated_since
+
+  const res = await clioGet<{ bills?: any[]; data?: any[] }>(firmId, '/bills', params)
+  return (res.bills ?? res.data ?? []) as any[]
+}
+
+export async function listMatters(firmId: string, options: { 
+  page?: number, 
+  per_page?: number,
+  created_since?: string,
+  updated_since?: string 
+} = {}): Promise<any[]> {
+  const { page = 1, per_page = 200, created_since, updated_since } = options
+  
+  const params: Record<string, string | number> = { page, per_page }
+  if (created_since) params.created_since = created_since
+  if (updated_since) params.updated_since = updated_since
+
+  const res = await clioGet<{ matters?: any[]; data?: any[] }>(firmId, '/matters', params)
+  return (res.matters ?? res.data ?? []) as any[]
+}
+
+export async function listTimeEntries(firmId: string, options: { 
+  page?: number, 
+  per_page?: number,
+  created_since?: string,
+  updated_since?: string 
+} = {}): Promise<any[]> {
+  const { page = 1, per_page = 200, created_since, updated_since } = options
+  
+  const params: Record<string, string | number> = { page, per_page }
+  if (created_since) params.created_since = created_since
+  if (updated_since) params.updated_since = updated_since
+
+  const res = await clioGet<{ time_entries?: any[]; data?: any[] }>(firmId, '/time_entries', params)
+  return (res.time_entries ?? res.data ?? []) as any[]
+}
+
+export async function listPayments(firmId: string, options: { 
+  page?: number, 
+  per_page?: number,
+  created_since?: string,
+  updated_since?: string 
+} = {}): Promise<any[]> {
+  const { page = 1, per_page = 200, created_since, updated_since } = options
+  
+  const params: Record<string, string | number> = { page, per_page }
+  if (created_since) params.created_since = created_since
+  if (updated_since) params.updated_since = updated_since
+
+  const res = await clioGet<{ payments?: any[]; data?: any[] }>(firmId, '/payments', params)
+  return (res.payments ?? res.data ?? []) as any[]
+}
+
+export async function getBillDetails(firmId: string, billId: string): Promise<any> {
+  const res = await clioGet<{ bill?: any; data?: any }>(firmId, `/bills/${billId}`)
+  return res.bill ?? res.data ?? null
+}
+
+export async function getMatterDetails(firmId: string, matterId: string): Promise<any> {
+  const res = await clioGet<{ matter?: any; data?: any }>(firmId, `/matters/${matterId}`)
+  return res.matter ?? res.data ?? null
+}
